@@ -1,0 +1,122 @@
+[
+  {
+    "step": 1,
+    "n_pareto": 3,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 0
+  },
+  {
+    "step": 2,
+    "n_pareto": 3,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 0
+  },
+  {
+    "step": 3,
+    "n_pareto": 3,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 0
+  },
+  {
+    "step": 4,
+    "n_pareto": 3,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 0
+  },
+  {
+    "step": 5,
+    "n_pareto": 3,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 1
+  },
+  {
+    "step": 6,
+    "n_pareto": 4,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 1
+  },
+  {
+    "step": 7,
+    "n_pareto": 4,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 1
+  },
+  {
+    "step": 8,
+    "n_pareto": 4,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 1
+  },
+  {
+    "step": 9,
+    "n_pareto": 4,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 1
+  },
+  {
+    "step": 10,
+    "n_pareto": 4,
+    "best_reward": 0.31314775347709656,
+    "eda_calls": 2
+  },
+  {
+    "step": 11,
+    "n_pareto": 3,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 2
+  },
+  {
+    "step": 12,
+    "n_pareto": 3,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 2
+  },
+  {
+    "step": 13,
+    "n_pareto": 3,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 2
+  },
+  {
+    "step": 14,
+    "n_pareto": 3,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 2
+  },
+  {
+    "step": 15,
+    "n_pareto": 3,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 3
+  },
+  {
+    "step": 16,
+    "n_pareto": 4,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 3
+  },
+  {
+    "step": 17,
+    "n_pareto": 4,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 3
+  },
+  {
+    "step": 18,
+    "n_pareto": 5,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 3
+  },
+  {
+    "step": 19,
+    "n_pareto": 5,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 3
+  },
+  {
+    "step": 20,
+    "n_pareto": 5,
+    "best_reward": 0.3372330665588379,
+    "eda_calls": 4
+  }
+]

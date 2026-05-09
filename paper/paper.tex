@@ -1,0 +1,598 @@
+% !TEX program = pdflatex
+% MLCAD Workshop Paper — IEEE Conference Format
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{balance}
+
+\graphicspath{{./}}
+
+\begin{document}
+
+\title{Instrumented ML-Driven PPA Optimization:\\Pre-Registered Experiments, Negative Results,\\and Cross-Version EDA Generalization}
+
+\author{
+\IEEEauthorblockN{Oguzhan Tekin}
+\IEEEauthorblockA{Independent Researcher\\
+Toronto, ON, Canada\\
+\textit{oguzhantekin@gmail.com}}
+}
+
+\maketitle
+
+\begin{abstract}
+We present an instrumented framework for ML-driven Power, Performance, and Area (PPA)
+optimization in ASIC design that pre-registers experimental outcomes before execution,
+separates surrogate model roles by architectural fit, and validates predictions through
+cross-version EDA probes. Using OpenROAD Flow Scripts (ORFS) on ASAP7 with four RTL
+designs, the full experimental arc—from surrogate training through Bayesian optimization
+to EDA verification—cost \$8.35 in cloud compute.
+
+Six findings emerge, each with pre-registered success criteria: (1)~GBDT$\rightarrow$RL
+and GAT$\rightarrow$BO role separation yields an 85.1-point IQM improvement (from
+$-$17.6 to +67.5) over the original monolithic architecture; (2)~graph-topology-only GAT achieves LODO-CV MAE of
+0.153, matching criticality-augmented variants; (3)~criticality edge weights provide no
+benefit beyond graph topology, with the mechanism being timing-repair-induced
+node-count--clock correlation ($\rho{=}{-}1.0$); (4)~surrogate-only Bayesian optimization with
+qLogNEHVI proposes 4 and 3 new Pareto candidates for AES and JPEG
+respectively, passing the surrogate's dominance criterion; (5)~ORFS version changes (v3.0$\rightarrow$26Q1) produce erratic PPA
+divergence including timing-sign flips, a methodological hazard for ML-for-EDA
+reproducibility; (6)~all 7 BO-proposed candidates lie on the Pareto front under a
+different ORFS version than training, with trade-off directions matching surrogate
+predictions, and one candidate strictly dominating a control configuration.
+
+Four pre-flight sanity checks caught four distinct bugs before they could propagate
+incorrect results. We argue that the methodology of pre-registered, instrumented
+experimentation is itself a contribution to ML-for-EDA practice.
+\end{abstract}
+
+\begin{IEEEkeywords}
+PPA optimization, surrogate modeling, Bayesian optimization, graph neural networks,
+OpenROAD, ASAP7, reproducibility, pre-registration
+\end{IEEEkeywords}
+
+%======================================================================
+\section{Introduction}
+%======================================================================
+
+Machine learning for electronic design automation (ML-for-EDA) has produced numerous
+results showing that surrogate models can predict PPA metrics and guide design-space
+exploration~\cite{kahng2021,openroad2019,cheng2021}. However, the field faces
+reproducibility challenges: published work rarely controls for EDA tool version
+sensitivity, and negative results are infrequently reported.
+
+We present a framework that addresses these gaps through three methodological
+commitments:
+
+\begin{enumerate}
+\item \textbf{Pre-registration.} Each experimental phase has success criteria committed
+to a plan document before execution. Outcomes are classified as pass/fail against
+pre-specified thresholds.
+
+\item \textbf{Negative-result reporting.} Findings that contradict initial hypotheses
+(criticality redundancy, ORFS version sensitivity) are reported with the same rigor
+as positive findings, including mechanistic explanations.
+
+\item \textbf{Instrumented sanity checking.} Every phase begins with a pre-flight
+diagnostic that must pass before scaling. Four of four sanity checks caught distinct
+bugs that would have produced plausible-but-wrong results.
+\end{enumerate}
+
+The framework uses two surrogate architectures—Gradient-Boosted Decision Trees (GBDT)
+and Graph Attention Networks (GAT)—assigned to different optimization roles based on
+their architectural strengths: GBDT for fast, tabular-input reinforcement learning
+reward evaluation, and GAT for uncertainty-aware Bayesian optimization over
+graph-structured netlists.
+
+The full experimental arc, from data generation through EDA verification, ran on AWS
+spot and on-demand instances for a total compute cost of \$8.35.
+
+%======================================================================
+\section{Related Work}
+%======================================================================
+
+\textbf{Surrogate-based PPA prediction.}
+GNNs operating on circuit netlists have shown promise for PPA
+prediction~\cite{ustun2020,huang2021,wu2022,chhabria2022}. OpenABC-D~\cite{chowdhury2021}
+provides a benchmark dataset for this task. Most work uses a single model architecture
+for both prediction and optimization. Our contribution is demonstrating that role
+separation—matching architecture to task—outperforms monolithic deployment.
+
+\textbf{Bayesian optimization for EDA.}
+BO has been applied to VLSI placement~\cite{agnesina2020} and design-space
+exploration~\cite{nardi2019}. We use qLogNEHVI~\cite{daulton2021,ament2024} for multi-objective
+optimization with MC Dropout uncertainty, applied to a GAT surrogate trained on real
+OpenROAD outputs. We evaluate RL performance using the Interquartile Mean (IQM)
+metric~\cite{agarwal2021}, which is more robust than mean return for small seed counts.
+
+\textbf{EDA reproducibility.}
+OpenROAD~\cite{openroad2019} and ORFS provide open-source RTL-to-GDS flows.
+We document that ORFS version changes produce $>$10\% PPA divergence on identical
+inputs, including timing-sign reversals—a finding with implications for any ML-for-EDA
+work using ORFS as ground truth. To our knowledge, no prior work has quantified
+cross-version PPA sensitivity in open-source EDA flows.
+
+%======================================================================
+\section{Methodology}
+\label{sec:method}
+%======================================================================
+
+\subsection{Pre-Registered Experimental Design}
+
+Each phase had outcomes committed before execution:
+
+\begin{itemize}
+\item \textbf{Phase 1 (RL):} ``IQM $>$ 0 after 500K steps'' $\rightarrow$ FAIL
+with monolithic GAT (IQM = $-$17.6). Root cause diagnosed via entropy ablation.
+Threshold unchanged; architecture re-specified to GBDT $\rightarrow$ PASS
+(IQM = +67.5)
+\item \textbf{Phase 2a (GAT training):} ``LODO-CV MAE $<$ 0.2'' $\rightarrow$ PASS
+(MAE = 0.153)
+\item \textbf{Phase 2a (Criticality ablation):} ``$|\Delta\text{MAE}|>0.01$
+$\rightarrow$ criticality helps; else redundant'' $\rightarrow$ NULL ($\Delta = -0.003$)
+\item \textbf{Phase 2a (BO):} ``Pareto front grows by $\geq$1 candidate''
+$\rightarrow$ PASS (+4 AES, +3 JPEG)
+\item \textbf{Phase 2a (C+):} ``$\geq$4/7 Pareto-dominant $\rightarrow$
+generalizes'' $\rightarrow$ PASS (7/7)
+\end{itemize}
+
+This structure prevents post-hoc metric selection and makes negative results
+(criticality null, version sensitivity) first-class contributions.
+
+\subsection{Surrogate Architecture and Role Separation}
+
+The original framework deployed a GAT model for both RL reward evaluation and BO
+surrogate prediction. We discovered this was architecturally mismatched:
+
+\begin{itemize}
+\item \textbf{GAT for RL:} The RL environment requires fast ($<$1ms), scalar reward
+evaluation from tabular knob vectors. GAT requires graph construction per evaluation,
+is slower, and its graph inputs were semantically mismatched to the RL action space
+(single clock-target knob).
+
+\item \textbf{GBDT for RL:} GBDT takes tabular features directly, evaluates in
+$\sim$0.1ms, and achieves MAE = 0.153 on the same test set. Replacing GAT with
+GBDT as the RL reward model produced IQM = +67.5 (vs.\ $-$17.6).
+
+\item \textbf{GAT for BO:} GAT's graph-structured input captures netlist topology.
+With MC Dropout (50 forward passes per candidate), it provides conservative
+uncertainty estimates suitable for qLogNEHVI's exploration-favoring acquisition.
+This is the task GAT was designed for.
+\end{itemize}
+
+\subsection{Data Pipeline}
+
+\textbf{Training data.} 23 unique configurations across 4 ASAP7 RTL designs
+(AES, Ibex, JPEG encoder, RISC-V 32I) at 5--7 clock targets per design,
+synthesized through ORFS v3.0. Each run produces a placed-and-routed DEF file,
+timing reports, and power/area metrics.
+
+\textbf{Graph extraction.} DEF files are parsed into PyTorch Geometric graphs
+(9K--62K nodes per design) with cell-type node features and net-connectivity edges.
+100\% extraction success rate across all 23 configurations.
+
+\textbf{Leave-One-Design-Out CV.} With only 4 design families, standard random
+splits would leak design identity. LODO-CV holds out all configurations of one
+design family, training on the other three.
+
+\subsection{Sanity Checks as Methodology}
+
+Every experimental phase began with a pre-flight check designed to catch systematic
+errors before scaling. Four checks caught four distinct bugs:
+
+\begin{enumerate}
+\item \textbf{RL entropy ablation} $\rightarrow$ caught broken GAT predictor
+(random-graph inputs producing noise-dominated rewards)
+\item \textbf{Data provenance spot-check} $\rightarrow$ caught v1/v2 data confusion
+(extraction initially ran on broken SDC-sweep data where all clock configs per family
+produced byte-identical DEF files; MD5 check revealed only 4 unique designs instead of
+23, making all downstream GAT predictions structurally constant per family)
+\item \textbf{EDA calibration probe} $\rightarrow$ caught ORFS version mismatch
+(v3.0 vs.\ 26Q1 producing $>$10\% PPA divergence)
+\item \textbf{C+ implausible-value check} $\rightarrow$ caught SDC time-unit
+mismatch (ASAP7 uses picoseconds; script specified nanoseconds)
+\end{enumerate}
+
+Each would have produced a plausible result if unchecked. The RL entropy ablation
+would have concluded ``RL doesn't work for PPA optimization'' rather than ``the
+predictor is broken.'' The v1/v2 data confusion would have trained a GAT on
+graphs with zero within-family structural variation, producing a legitimate-looking
+but meaningless criticality ablation. The SDC unit error would have reported
+22$\times$ inflated power as a real EDA result. The ORFS version mismatch would
+have produced verification verdicts that appeared interpretable but silently
+compared surrogate predictions against a different EDA pipeline than training,
+yielding pass/fail results that measured cross-version noise rather than
+surrogate accuracy.
+
+%======================================================================
+\section{Experimental Results}
+%======================================================================
+
+\subsection{Finding 1: Role Separation (+67.5 IQM)}
+
+The monolithic GAT-as-RL-surrogate produced IQM = $-$17.6 over 500K PPO steps
+(5 seeds). Diagnosis revealed the GAT was receiving randomly-constructed graphs
+with no semantic connection to the RL agent's clock-target actions.
+
+Replacing the RL reward model with GBDT (keeping GAT for BO) produced
+IQM = +67.5—an 85.1-point improvement. The RL agent learned a coherent
+policy along the single dimension the GBDT surrogate could resolve (clock
+target), confirming that role separation enabled training to proceed where
+the monolithic architecture could not.
+
+\subsection{Finding 2: GAT Surrogate Quality (MAE = 0.153)}
+
+\begin{table}[t]
+\centering
+\caption{LODO-CV results on 23 real OpenROAD configurations}
+\label{tab:lodo}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Hold-out} & \textbf{GAT+c(e)} & \textbf{GAT$-$c(e)} & \textbf{Size+clock LR} \\
+\midrule
+AES      & 0.175 & 0.118 & 0.322 \\
+Ibex     & 0.100 & 0.108 & 0.071 \\
+JPEG     & 0.271 & 0.272 & 0.679 \\
+RISC-V   & 0.076 & 0.112 & 0.264 \\
+\midrule
+\textbf{Mean} & \textbf{0.156} & \textbf{0.153} & \textbf{0.376} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:lodo} shows LODO-CV results. The GAT without criticality edges
+achieves mean MAE = 0.153, outperforming the size+clock linear regression baseline
+(MAE = 0.376) by 2.5$\times$. This confirms the GAT learns genuine structural
+features from netlist topology, not merely design size. The advantage is not
+uniform—Ibex's small, regular structure is well-modeled by simple regression
+(0.071 vs.\ 0.108), while JPEG's larger and more diverse netlist topology
+benefits substantially from the GAT's structural representation
+(0.272 vs.\ 0.679).
+
+\subsection{Finding 3: Criticality Null with Mechanism}
+
+Depth-based criticality edge weights produce $\Delta$MAE = $-$0.003 ($-$2.0\%)—
+well within the pre-registered $\pm$0.01 indifference zone. Criticality edges
+are redundant with information already encoded in graph topology.
+
+\textbf{Mechanism.} Within each design family, the number of nodes in the
+placed-and-routed netlist correlates perfectly with clock target
+($\rho = -1.0$): tighter timing constraints trigger more buffer insertion by
+the synthesis tool, increasing node count. The GAT already observes node count
+through graph structure; adding explicit timing-criticality edges provides no
+new information.
+
+This is not a failure of the criticality concept—it is a finding about the
+ASAP7/ORFS synthesis pipeline's buffer-insertion behavior at the single-knob
+(clock target) optimization level. Multi-knob optimization (placement density,
+aspect ratio, CTS parameters) may break this correlation, potentially
+restoring criticality's value.
+
+\subsection{Finding 4: Surrogate-Only Pareto Expansion}
+
+\begin{table}[t]
+\centering
+\caption{Bayesian optimization results per design family (50 qLogNEHVI trials)}
+\label{tab:bo}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Family} & \textbf{Seed} & \textbf{Final} & \textbf{Growth} & \textbf{MC std} \\
+\midrule
+AES      & 5 & 9  & +4 & 0.080 \\
+JPEG     & 6 & 9  & +3 & 0.089 \\
+Ibex     & 6 & 6  & +0 & 0.094 \\
+RISC-V   & 6 & 6  & +0 & 0.096 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:bo} summarizes BO outcomes. AES and JPEG show Pareto-front growth
+(+4 and +3 new candidate configurations respectively), while Ibex and RISC-V
+show no growth—the surrogate correctly identified that the existing manifests
+already cover the achievable trade-off space for those designs.
+
+\subsection{Finding 5: ORFS Version Sensitivity}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig3_version.pdf}
+\caption{PPA deltas between ORFS v3.0 and 26Q1 on identical RTL/SDC inputs.
+The $\pm$5\% tolerance band is exceeded by all designs on at least one metric.
+JPEG exhibits a WNS sign flip (timing met $\rightarrow$ timing violated).}
+\label{fig:version}
+\end{figure}
+
+When we attempted EDA-in-the-loop verification, we discovered that ORFS v3.0
+(used for training data) could not be built on current Ubuntu 22.04 due to
+dependency rot. Using the available ORFS 26Q1, a calibration probe across 4
+designs revealed erratic PPA divergence (Fig.~\ref{fig:version}).
+
+The critical finding is directional inconsistency: power increases for AES
+(+9.7\%) but decreases for JPEG ($-$6.5\%). WNS diverges by $-$97\% to
+$-$193\% for three designs. Most concerning, JPEG's WNS flips sign entirely:
+v3.0 reports timing met (+13.7ps slack); 26Q1 reports timing violated
+($-$12.8ps).
+
+This is not calibration error—it is two different synthesis/P\&R algorithms
+making qualitatively different physical decisions on the same input. Any
+ML-for-EDA work using ORFS as ground truth must control for version explicitly,
+or risk training on one pipeline's decisions and evaluating against another's.
+
+\subsection{Finding 6: Cross-Version Generalization}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig2_tradeoff.pdf}
+\caption{Trade-off direction for all 7 BO candidates relative to native-clock
+baselines. All candidates reduce power at the cost of fmax, matching the
+surrogate's predicted trade-off direction. AES candidates cluster at
+$-$35\% to $-$45\% fmax; JPEG candidates spread across $-$27\% to $-$32\%.}
+\label{fig:tradeoff}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig1_pareto.pdf}
+\caption{Pareto fronts for AES and JPEG. BO candidates (stars) expand the
+frontier toward lower power. CAND-6 strictly dominates CTRL-2 in the JPEG
+family. Reference set: 26Q1 calibration baselines + C+ controls (2 points
+per family).}
+\label{fig:pareto}
+\end{figure}
+
+Despite Finding~5 establishing that v3.0 and 26Q1 produce systematically
+different PPA values, we tested whether the surrogate's \textit{relative}
+Pareto ordering survives cross-version transfer. Seven BO-proposed candidates
+(4~AES, 3~JPEG) and 3 control configurations were synthesized through
+26Q1.
+
+\textbf{Trade-off direction is the primary result.} All 7 candidates
+consistently expand the Pareto frontier toward lower power at the cost of
+reduced fmax (Fig.~\ref{fig:tradeoff}), matching the surrogate's predicted
+trade-off direction. This consistency across both design families and all 7
+candidates is unlikely to occur by chance and suggests the surrogate learned
+genuine design-space structure rather than version-specific EDA artifacts.
+
+\textbf{Pareto status.} All 7 candidates are non-dominated against 26Q1
+calibration baselines and validation controls (2 reference points per design
+family, Fig.~\ref{fig:pareto}). The small reference set limits the strength
+of this claim. However, one candidate (CAND-6) strictly dominates control
+CTRL-2 in the JPEG family—better power (0.0683W vs.\ 0.0701W), smaller area
+(6386 vs.\ 6389 $\mu$m$^2$), and higher fmax (1262.75 vs.\ 1217.56 MHz).
+This demonstrates that BO is capable of surfacing genuinely Pareto-improving
+configurations, not merely non-dominated ones in a sparse space. (The area
+difference of 3~$\mu$m$^2$ is small in isolation, but dominance holds even
+if area is treated as tied: the power and fmax improvements each exceed
+the respective metric's resolution.)
+
+All 7 candidates and 3 controls met timing (WNS = 0.00ps), confirming that
+the BO pipeline produces physically realizable designs.
+
+%======================================================================
+\section{Compute Cost}
+%======================================================================
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\columnwidth]{fig4_cost.pdf}
+\caption{Per-phase compute cost breakdown. Total: \$8.35 on AWS (spot +
+on-demand c6i.4xlarge instances). The diagnostic phase that discovered ORFS
+version sensitivity cost \$0.65—the cheapest phase, yet arguably the most
+impactful finding.}
+\label{fig:cost}
+\end{figure}
+
+The full experimental arc cost \$8.35 (Fig.~\ref{fig:cost}): \$0.85 for
+bootstrap and qLogNEHVI migration (t3.medium spot, $\sim$2h), \$1.20 for
+RL training with 500K PPO steps across 5 seeds (t3.medium spot, $\sim$3h),
+\$2.95 for real-data graph extraction, GAT retraining, and BO
+(c6i.xlarge spot instances across multiple sessions, $\sim$6h total),
+\$0.65 for the calibration probe that discovered version sensitivity
+(c6i.4xlarge on-demand, $\sim$1h), and \$2.70 for the C+ generalization
+probe including failed first batch and re-runs (c6i.4xlarge on-demand,
+$\sim$4h).
+
+All computation ran on AWS c6i.4xlarge instances (16 vCPU, 32 GB RAM,
+\$0.68/hr on-demand). No GPUs were used. EDA run times ranged from 8--9
+minutes (AES) to 48--55 minutes (JPEG) per configuration on 26Q1.
+
+We report cost explicitly because most ML-for-EDA papers do not, making
+it difficult for other researchers to assess whether results are achievable
+at academic budgets. Our total spend of \$8.35 for the complete experimental
+arc—training, optimization, ablation, and EDA verification—is comparable to
+a few GPU-hours on cloud instances, demonstrating that meaningful ML-for-EDA
+experimentation is feasible without dedicated hardware.
+
+%======================================================================
+\section{Discussion}
+%======================================================================
+
+\subsection{The Methodology Is the Contribution}
+
+The six findings span positive results (role separation, Pareto expansion,
+cross-version generalization), a mechanistically-explained null (criticality
+redundancy), and a reproducibility hazard (ORFS version sensitivity). No
+single finding would carry a paper on its own. Together, they demonstrate
+what a rigorously instrumented ML-for-EDA pipeline looks like in practice.
+
+The pre-registration discipline is load-bearing, not decorative. Without it:
+\begin{itemize}
+\item The criticality null would likely have been omitted (unpublishable
+negative result)
+\item The version sensitivity finding would have been an undocumented
+debugging session rather than a contribution
+\item The C+ probe would have been framed as ``verification'' rather than
+honestly labeled as a generalization experiment
+\end{itemize}
+
+\subsection{Limitations}
+
+\textbf{Scale.} 4 designs, 23 configurations, single-knob (clock target)
+optimization. Multi-knob, multi-design-family experiments are needed to test
+whether the criticality null persists and whether cross-version generalization
+holds at scale.
+
+\textbf{Reference set size.} The C+ Pareto analysis uses 2 reference points
+per design family. While CAND-6's strict domination is unambiguous, the
+remaining 6 candidates' non-dominated status would be more convincing against
+a larger reference set.
+
+\textbf{No true verification.} The v3.0 build is unrecoverable on current
+systems, preventing direct comparison between surrogate predictions and the
+EDA pipeline they were trained on. The C+ result is a cross-version
+generalization claim, not a verification claim.
+
+\textbf{Surrogate limitations.} MC Dropout overestimates uncertainty (U/S
+ratio 6--9$\times$ per objective), causing conservative BO exploration. This
+is the favorable failure mode: over-estimated uncertainty drives conservative
+acquisition, making the Pareto-expansion claims in Finding~4 more robust than
+they would be under a well-calibrated or under-confident surrogate. Better
+calibrated uncertainty (e.g., deep ensembles) could improve Pareto
+expansion further.
+
+\subsection{Future Directions}
+
+Three extensions follow directly from the current limitations.
+First, the criticality null (Finding~3) is specific to single-knob
+optimization where buffer insertion creates a perfect correlation between
+clock target and node count; multi-knob optimization (placement density,
+aspect ratio, CTS parameters) may break this correlation and restore
+criticality's predictive value.
+Second, the ORFS version sensitivity finding motivates a community resource:
+a versioned-ORFS reference benchmark with frozen PPA baselines, enabling
+cross-study comparison without version-confounded results.
+Third, the C+ generalization result—7/7 surrogate-predicted Pareto candidates
+confirmed on a different ORFS version—motivates systematic testing across
+additional ORFS releases and PDKs beyond ASAP7 to establish how far
+surrogate transferability extends.
+
+%======================================================================
+\section{Conclusion}
+%======================================================================
+
+We presented an ML-driven PPA optimization framework distinguished by its
+methodological instrumentation: pre-registered outcomes, systematic sanity
+checks, and honest reporting of negative results. The framework produced six
+findings across the experimental arc, including a surrogate role-separation
+insight, a mechanistically-explained criticality null, and evidence that
+Bayesian optimization's Pareto-ordering generalizes across ORFS versions
+despite $>$10\% absolute PPA divergence.
+
+The ORFS version sensitivity finding (Section~IV-E) has implications beyond
+this project: any ML-for-EDA pipeline using ORFS as ground truth must lock
+and report the exact ORFS version, as version changes can flip timing
+verdicts on identical inputs.
+
+The total compute cost of \$8.35 demonstrates that meaningful ML-for-EDA
+experimentation—including real OpenROAD synthesis, EDA verification, and
+multiple ablation controls—is feasible for individual researchers on
+commodity cloud hardware without GPUs or institutional infrastructure.
+
+\subsection*{Reproducibility}
+
+As an independent research project, the complete experimental record is the
+primary deliverable. All code, data manifests, trained models, ORFS run
+reports, and pre-registered plan documents are available at
+\url{https://github.com/oguzhan-canada/instrumented-ml-ppa}.
+The experimental trail (PROGRESS.md) documents every decision, bug fix,
+and sanity-check result in chronological order.
+Artifacts are organized by phase: Phase~0 bootstrap scripts and qLogNEHVI
+migration; Phase~1 RL training checkpoints, entropy ablation logs, and IQM
+curves; Phase~2a GAT weights, LODO-CV splits, BO trial histories, and
+criticality ablation results; and C+ probe EDA verification outputs
+including full ORFS timing/power/area reports for all 10 candidate and
+control configurations.
+Pre-registered experimental plans with success/failure thresholds are
+committed before each phase's execution, enabling independent audit of
+the pre-registration claims made in Section~\ref{sec:method}.
+
+\section*{Acknowledgments}
+
+This work was conducted as independent research by the sole author,
+without institutional or external funding. All compute was self-funded
+on AWS commodity instances. The author thanks the OpenROAD, ASAP7,
+BoTorch, and Stable-Baselines3 open-source communities, whose tools
+made this project feasible at the reported budget.
+
+%======================================================================
+% References
+%======================================================================
+\bibliographystyle{IEEEtran}
+% Placeholder references — replace with .bib file
+\begin{thebibliography}{13}
+
+\bibitem{kahng2021}
+A.~B.~Kahng, ``Machine learning applications in physical design,''
+\textit{Proc. Int. Symp. Physical Design (ISPD)}, pp.~68--75, 2021.
+
+\bibitem{openroad2019}
+T.~Ajayi \textit{et al.}, ``INVITED: toward an open-source digital flow:
+first learnings from the OpenROAD project,''
+\textit{Proc. DAC}, pp.~1--4, 2019.
+
+\bibitem{cheng2021}
+W.-H.~Cheng \textit{et al.}, ``On joint learning for solving placement and
+routing in chip design,'' \textit{Proc. NeurIPS}, 2021.
+
+\bibitem{huang2021}
+G.~Huang, J.~Hu, Y.~He, J.~Liu, M.~Ma, Z.~Shen, J.~Wu, Y.~Xu,
+H.~Zhang, K.~Zhong, X.~Ning, Y.~Dong, Y.~Wang, H.~Yang, and B.~Yu,
+``Machine learning for electronic design automation: a survey,''
+\textit{ACM Trans. Des. Autom. Electron. Syst.},
+vol.~26, no.~5, art.~40, pp.~1--46, 2021.
+
+\bibitem{wu2022}
+Y.-C.~Wu \textit{et al.}, ``High-definition routing congestion prediction
+for large-scale FPGAs,'' \textit{Proc. ASPDAC}, 2022.
+
+\bibitem{ustun2020}
+E.~Ustun, C.~Deng, D.~Pal, Z.~Li, and Z.~Zhang,
+``Accurate operation delay prediction for FPGA HLS using graph neural
+networks,'' \textit{Proc. ICCAD}, pp.~1--9, 2020.
+
+\bibitem{chhabria2022}
+V.~A.~Chhabria \textit{et al.}, ``Towards machine learning for placement
+and routing in chip design: a methodological overview,''
+\textit{arXiv:2202.13564}, 2022.
+
+\bibitem{chowdhury2021}
+A.~B.~Chowdhury \textit{et al.}, ``OpenABC-D: a large-scale dataset for
+machine learning guided integrated circuit synthesis,''
+\textit{Proc. DATE}, pp.~1696--1701, 2021.
+
+\bibitem{agnesina2020}
+A.~Agnesina, P.~Rajvanshi, T.~Yang, G.~Pradipta, and S.~K.~Lim,
+``VLSI placement parameter optimization using deep reinforcement learning,''
+\textit{Proc. ICCAD}, pp.~1--9, 2020.
+
+\bibitem{nardi2019}
+L.~Nardi, D.~Koeplinger, and K.~Olukotun,
+``Practical design space exploration,''
+\textit{Proc. MASCOTS}, pp.~347--358, 2019.
+
+\bibitem{daulton2021}
+S.~Daulton, M.~Balandat, and E.~Bakshy,
+``Parallel Bayesian optimization of multiple noisy objectives with expected
+hypervolume improvement,''
+\textit{Proc. NeurIPS}, vol.~34, 2021.
+
+\bibitem{ament2024}
+S.~Ament, S.~Daulton, D.~Eriksson, M.~Balandat, and E.~Bakshy,
+``Unexpected improvements to expected improvement for Bayesian optimization,''
+\textit{Proc. NeurIPS}, vol.~36, 2023.
+
+\bibitem{agarwal2021}
+R.~Agarwal, M.~Schwarzer, P.~S.~Castro, A.~Courville, and M.~G.~Bellemare,
+``Deep reinforcement learning at the edge of the statistical precipice,''
+\textit{Proc. NeurIPS}, 2021.
+
+\end{thebibliography}
+
+\balance
+\end{document}

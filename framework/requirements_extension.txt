@@ -1,0 +1,52 @@
+# PPA Framework Extension — Pinned Dependencies
+# Phase 0 BOM from Project_Extension_Review §5
+# Last verified: 2026-05-06
+# Target: CPU-only (no CUDA wheels)
+
+# === Core ML ===
+torch==2.5.0+cpu
+torch-geometric==2.7.0
+torch-scatter==2.1.2+pt25cpu
+torch-sparse==0.6.18+pt25cpu
+
+# === Optimization (BO) ===
+botorch==0.13.0
+gpytorch==1.13.0
+ax-platform==0.4.3
+
+# === Gradient Boosting ===
+xgboost==3.2.0
+
+# === RL ===
+stable-baselines3==2.7.1
+gymnasium==1.0.0
+
+# === Dataset / Orchestration ===
+ray[tune]==2.20.0
+hyperopt==0.2.7
+boto3==1.34.0
+pandas==2.2.0
+numpy==1.26.0
+
+# === Evaluation & Reporting ===
+rliable @ git+https://github.com/google-research/rliable.git
+matplotlib==3.8.0
+seaborn==0.13.0
+
+# === Testing ===
+pytest==8.0.0
+pytest-cov==4.1.0
+
+# === Utilities ===
+pyyaml==6.0.1
+scipy==1.12.0
+scikit-learn==1.4.0
+tensorboard==2.16.0
+tqdm==4.66.0
+
+# === Install notes ===
+# PyTorch CPU wheels from: --extra-index-url https://download.pytorch.org/whl/cpu
+# PyG scatter/sparse from: --find-links https://data.pyg.org/whl/torch-2.5.0+cpu.html
+# rliable: installed from git (no PyPI release)
+# V2PYG: git submodule, not pip-installable
+# OpenROAD/ORFS: system install from source (tag v3.0, sha 181e9133)

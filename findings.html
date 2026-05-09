@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Can a Computer Learn to Design Better Chips?</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --navy:#0b1929;--navy2:#0f2235;--navy3:#162d45;--navy4:#1d3a57;
+  --teal:#02C39A;--gold:#f0c040;--coral:#F96167;--blue:#2a88e0;
+  --white:#f0f6ff;--dim:#6a8fad;--border:rgba(2,195,154,0.15);
+}
+body.light{
+  --navy:#f0f4f8;--navy2:#e2e8f0;--navy3:#d1dce8;--navy4:#b8c9d8;
+  --white:#0f2235;--dim:#3a5a7a;--border:rgba(2,195,154,0.25);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--navy);color:var(--white);font-family:'Calibri','Candara','Segoe UI',sans-serif;line-height:1.7}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+h2{font-size:31px;margin-bottom:8px}
+h3{font-size:22px;color:var(--teal);margin-bottom:4px}
+p,.note{font-size:17px;color:var(--dim);line-height:1.7}
+.section{padding:56px 0}
+#site-header{position:sticky;top:0;z-index:999;height:62px;background:var(--navy2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;padding:0 28px}
+#header-center{display:flex;align-items:center;justify-content:center;width:100%}
+#header-right{position:absolute;right:28px;display:flex;align-items:center;gap:10px}
+.hdr-dropdown{position:relative;display:inline-block}
+.hdr-dropdown-trigger{font-family:'Calibri','Candara','Segoe UI',sans-serif;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--dim);font-size:13px;cursor:pointer;transition:border-color .2s,color .2s;user-select:none}
+.hdr-dropdown-trigger:hover{border-color:var(--teal);color:var(--teal)}
+.hdr-dropdown.open .hdr-dropdown-trigger{border-color:var(--teal);color:var(--teal)}
+.hdr-dropdown-panel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:500px;max-height:72vh;overflow-y:auto;background:var(--navy2);border:1px solid var(--border);border-radius:12px;z-index:2000;box-shadow:0 12px 40px rgba(0,0,0,.55);padding:22px 24px;scrollbar-width:thin}
+.hdr-dropdown.open .hdr-dropdown-panel{display:block}
+.hdr-panel-title{font-size:15px;font-weight:700;color:var(--teal);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.hdr-panel-body p{font-size:14px;line-height:1.75;color:var(--white);margin-bottom:12px}
+.hdr-panel-body p:last-child{margin-bottom:0}
+#themeBtn{font-family:'Calibri','Candara','Segoe UI',sans-serif;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--dim);font-size:13px;cursor:pointer;transition:border-color .2s,color .2s}
+#themeBtn:hover{border-color:var(--teal);color:var(--teal)}
+.hero{text-align:center;padding:80px 0 60px}
+.hero h1{font-size:42px;color:var(--white);margin-bottom:12px}
+.hero .sub{font-size:19px;color:var(--dim);max-width:760px;margin:0 auto 32px}
+.stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.stat-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:20px 28px;min-width:160px;text-align:center}
+.stat-card .num{font-size:36px;font-weight:700;color:var(--teal)}
+.stat-card .lbl{font-size:14px;color:var(--dim);margin-top:2px}
+.hero .footnote{font-style:italic;font-size:15px;color:var(--dim);max-width:720px;margin:0 auto}
+.ppa-row{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.ppa-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:28px 24px;flex:1;min-width:200px;max-width:300px;text-align:center}
+.ppa-card .icon{font-size:40px;margin-bottom:8px}
+.ppa-card h3{margin-bottom:6px}
+.ppa-card p{font-size:16px}
+.ppa-note{text-align:center;font-style:italic;font-size:16px;color:var(--dim);max-width:640px;margin:0 auto}
+.finding-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.finding-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:22px}
+.finding-kicker{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+.finding-metric{font-size:30px;font-weight:700;color:var(--white);margin-bottom:6px;line-height:1.15}
+.finding-card p{font-size:15px}
+.explorer{display:flex;gap:28px;flex-wrap:wrap}
+.ctrl-panel{flex:1;min-width:280px;background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:24px}
+.result-panel{flex:1.3;min-width:320px}
+.design-btns{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.design-btn{background:var(--navy3);border:1px solid var(--navy4);color:var(--dim);padding:10px 16px;border-radius:8px;cursor:pointer;font-size:16px;text-align:center;flex:1;min-width:70px;font-family:inherit}
+.design-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:700}
+.design-btn small{display:block;font-size:10px;margin-top:2px;opacity:.75}
+.slider-group{margin:18px 0}
+.slider-group label{font-size:16px;color:var(--dim);display:block;margin-bottom:6px}
+.slider-group .val{color:var(--gold);font-weight:700}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--teal) var(--pct,50%),var(--navy4) var(--pct,50%));outline:none;margin:8px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);cursor:pointer;border:2px solid var(--navy)}
+.range-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--dim)}
+.model-btns{display:flex;gap:8px;margin:12px 0}
+.model-btn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--navy4);background:var(--navy3);color:var(--dim);cursor:pointer;font-size:15px;text-align:center;font-family:inherit}
+.model-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:700}
+.big-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.big-stat{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:120px;text-align:center}
+.big-stat .num{font-size:32px;font-weight:700;transition:all .4s cubic-bezier(.34,1.56,.64,1)}
+.big-stat .num.pos{color:var(--teal)}.big-stat .num.neg{color:var(--coral)}
+.big-stat .lbl{font-size:13px;color:var(--dim);margin-top:4px}
+.compare-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
+.compare-card{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.compare-card .mini{font-size:12px;color:var(--dim);margin-bottom:3px}
+.compare-card .num{font-size:26px;font-weight:700;color:var(--white)}
+.compare-card .sub{font-size:13px;color:var(--dim)}
+.chart-box{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.chart-box h4{font-size:16px;color:var(--dim);margin-bottom:8px}
+.success-note{border:1px solid var(--teal);border-radius:10px;padding:14px 18px;background:rgba(2,195,154,.06);font-size:15px;color:var(--teal)}
+.caveat{border:1px solid var(--coral);border-radius:10px;padding:14px 18px;background:rgba(249,97,103,.06);font-size:15px;color:var(--coral)}
+.phase-row{display:flex;gap:24px;flex-wrap:wrap}
+.phase-card{flex:1;min-width:280px;background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:24px;position:relative}
+.phase-card .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:12px}
+.phase-card h3{color:var(--white);margin-bottom:8px}
+.phase-stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.phase-stat{background:var(--navy3);padding:6px 12px;border-radius:6px;font-size:14px;color:var(--dim)}
+.phase-result{font-size:16px;color:var(--teal);margin-top:8px}
+.tools-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.tool-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:20px 18px;text-align:center}
+.tool-icon{font-size:28px;margin-bottom:8px}
+.tool-name{font-size:15px;font-weight:700;color:var(--teal);margin-bottom:6px}
+.tool-desc{font-size:13px;color:var(--dim);line-height:1.55}
+.tab-row{display:flex;gap:6px;margin:16px 0;flex-wrap:wrap}
+.tab-btn{padding:8px 18px;border-radius:20px;border:1px solid var(--navy4);background:var(--navy3);color:var(--dim);cursor:pointer;font-size:15px;font-family:inherit}
+.tab-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.tab-content{display:none}.tab-content.active{display:block}
+.miss-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.miss-card{border:1px solid var(--coral);border-radius:10px;padding:14px;background:rgba(249,97,103,.04)}
+.miss-card h4{font-size:16px;color:var(--coral);margin-bottom:4px}
+.miss-card p{font-size:15px}
+.why-cols{display:flex;gap:24px;flex-wrap:wrap}
+.why-col{flex:1;min-width:240px}
+.why-col h4{margin-bottom:8px;font-size:17px}
+.why-col li{font-size:15px;color:var(--dim);margin-bottom:6px}
+.key-insight-banner{background:linear-gradient(135deg,rgba(2,195,154,.08),rgba(42,136,224,.08));border-top:1px solid var(--teal);border-bottom:1px solid var(--teal);padding:40px 0}
+.ki-inner{display:flex;align-items:flex-start;gap:24px;background:var(--navy2);border:1px solid var(--border);border-radius:16px;padding:28px 32px}
+.ki-icon{font-size:48px;flex-shrink:0}
+.ki-label{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal);margin-bottom:6px}
+.ki-headline{font-size:26px;font-weight:700;color:var(--white);margin-bottom:10px;line-height:1.2}
+.ki-body{font-size:16px;color:var(--dim);line-height:1.7}
+.rl-explainer{border-left:3px solid var(--teal);padding:14px 18px;background:rgba(2,195,154,.05);border-radius:0 10px 10px 0;margin-bottom:20px;font-size:16px;font-style:italic;color:var(--dim)}
+.rl-stats{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+.rl-stat{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:150px;text-align:center}
+.rl-stat .num{font-size:28px;font-weight:700}
+.rl-stat .lbl{font-size:13px;color:var(--dim);margin-top:4px}
+.rl-table,.data-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px}
+.rl-table th,.data-table th{background:var(--navy3);color:var(--dim);padding:8px 12px;text-align:left;border-bottom:1px solid var(--navy4)}
+.rl-table td,.data-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.rl-summary{background:var(--teal);color:#fff;border-radius:10px;padding:16px 20px;font-size:17px;font-weight:600;text-align:center;margin-top:16px}
+.sanity-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sanity-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:20px}
+.sanity-tag{display:inline-block;padding:3px 10px;border-radius:20px;background:rgba(2,195,154,.12);color:var(--teal);font-size:12px;font-weight:700;margin-bottom:10px}
+.sanity-card h4{font-size:17px;color:var(--white);margin-bottom:6px}
+.sanity-card p{font-size:15px}
+.researcher-card{display:flex;align-items:flex-start;gap:28px;background:var(--navy3);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:780px;margin:0 auto}
+.researcher-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--blue));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0}
+.researcher-name{font-size:22px;font-weight:700;color:var(--white);margin-bottom:4px}
+.researcher-title{font-size:13px;color:var(--teal);margin-bottom:12px}
+.researcher-bio{font-size:15px;color:var(--dim);line-height:1.7;margin-bottom:12px}
+.researcher-email{font-size:14px;color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(2,195,154,.3);padding-bottom:1px}
+.researcher-email:hover{border-color:var(--teal)}
+footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0;margin-top:40px}
+.footer-caveat{font-size:13px;color:var(--dim);text-align:center;margin-top:8px;font-style:italic}
+.footer-creator{font-size:13px;color:var(--dim);text-align:center;margin-top:10px;font-style:italic}
+@media(max-width:900px){
+  .finding-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  .hero h1{font-size:28px}
+  .stat-row{flex-direction:column;align-items:center}
+  .explorer,.phase-row,.why-cols{flex-direction:column}
+  .miss-grid,.sanity-grid,.compare-grid,.finding-grid{grid-template-columns:1fr}
+  .footer-inner{flex-direction:column;text-align:center}
+  .ppa-row{flex-direction:column;align-items:center}
+  .tools-grid{grid-template-columns:1fr 1fr}
+  .ki-inner{flex-direction:column}
+  .researcher-card{flex-direction:column;align-items:center;text-align:center}
+  .hdr-dropdown-panel{width:calc(100vw - 32px);right:-60px}
+  #header-center span{font-size:14px !important}
+}
+@media(max-width:500px){.tools-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header id="site-header">
+  <div id="header-center">
+    <span style="font-size:20px;font-weight:700;color:var(--white);letter-spacing:0.3px">ML-Driven Power, Performance and Area (PPA) Optimization</span>
+  </div>
+  <div id="header-right">
+    <div class="hdr-dropdown">
+      <button class="hdr-dropdown-trigger">About Project</button>
+      <div class="hdr-dropdown-panel">
+        <div class="hdr-panel-title">About This Project</div>
+        <div class="hdr-panel-body">
+          <p>This project asks whether low-cost machine learning can help navigate chip design trade-offs in power, performance, and area. Every OpenROAD run is expensive in time, so the goal is to learn from a small but carefully curated set of real configurations.</p>
+          <p>The final study covers 23 real OpenROAD configurations across four ASAP7 RTL designs — AES, Ibex, JPEG, and RISC-V 32I — and reports six pre-registered findings. The story is no longer “placeholder graphs” or “early promise.” Real netlists were extracted, evaluated, and used to train a graph surrogate that now reaches MAE = 0.153.</p>
+          <p>The framework matured through five phases: bootstrap, reinforcement learning, GAT plus Bayesian optimization, EDA calibration, and a final C+ probe. That sequence revealed role separation in RL, measured surrogate quality with leave-one-design-out validation, exposed ORFS version sensitivity, and confirmed 7/7 Pareto candidates against newer toolchain baselines.</p>
+          <p>All experiments were run on CPU-only AWS infrastructure for a total compute cost of $8.35. The public-facing lesson is simple: careful methodology, exact tool-version reporting, and sanity checks matter as much as the ML model itself.</p>
+        </div>
+      </div>
+    </div>
+    <div class="hdr-dropdown">
+      <button class="hdr-dropdown-trigger">Methodology</button>
+      <div class="hdr-dropdown-panel">
+        <div class="hdr-panel-title">Methodology</div>
+        <div class="hdr-panel-body">
+          <p>The work is organized around pre-registered findings rather than ad-hoc tuning. Real OpenROAD outputs were collected on four design families, and evaluation used leave-one-design-out cross-validation so every reported score reflects generalization to an unseen family.</p>
+          <p>Two model roles were separated. XGBoost GBDT served as the reinforcement learning reward model because PPO needs stable scalar feedback. The Graph Attention Network served as the Bayesian optimization surrogate because it can exploit real netlist structure when searching for Pareto improvements.</p>
+          <p>Surrogate quality was measured with three baselines: GAT+c(e), GAT-c(e), and a simple size-plus-clock linear regression. Bayesian optimization used BoTorch qLogNEHVI for 50 trials per family, while PPO ran for 500,000 steps over five seeds to evaluate policy learning under the revised reward pipeline.</p>
+          <p>Four pre-flight sanity checks were treated as first-class methodology. They caught a broken GAT predictor, a v1/v2 data provenance mix-up, an ORFS version mismatch, and an SDC time-unit bug before those errors could turn into false findings.</p>
+        </div>
+      </div>
+    </div>
+    <button id="themeBtn" onclick="toggleTheme()">☀️ Light</button>
+  </div>
+</header>
+
+<section class="hero section">
+<div class="wrap">
+  <h1>Can a Computer Learn to Design Better Chips?</h1>
+  <p class="sub">Yes — but only when the models, toolchain, and sanity checks all play the right role. This final MLCAD study turns a small real-data campaign into six pre-registered findings about RL, graph surrogates, and reproducible ML-for-EDA.</p>
+  <div class="stat-row">
+    <div class="stat-card"><div class="num">23</div><div class="lbl">Configurations</div></div>
+    <div class="stat-card"><div class="num">6</div><div class="lbl">Findings</div></div>
+    <div class="stat-card"><div class="num">$8.35</div><div class="lbl">Total Cost</div></div>
+    <div class="stat-card"><div class="num">7/7</div><div class="lbl">Pareto Confirmed</div></div>
+  </div>
+  <p class="footnote">“The final result is not just a better model. It is a workflow that separates roles, locks tool versions, and checks itself before making claims.”</p>
+</div>
+</section>
+
+<section class="section" style="background:var(--navy2)">
+<div class="wrap">
+  <h2 style="text-align:center">What Is Power, Speed, and Size?</h2>
+  <p style="text-align:center;margin-bottom:24px">Every chip designer is trading off the same three outcomes.</p>
+  <div class="ppa-row">
+    <div class="ppa-card"><div class="icon">⚡</div><h3>Power</h3><p>How much electricity does the chip use? Lower power means less heat, lower operating cost, and better battery life.</p></div>
+    <div class="ppa-card"><div class="icon">🏎️</div><h3>Performance</h3><p>How fast can the chip run? Higher fmax means more work done per second.</p></div>
+    <div class="ppa-card"><div class="icon">📐</div><h3>Area</h3><p>How much silicon does it occupy? Smaller area usually means more chips per wafer.</p></div>
+  </div>
+  <p class="ppa-note">“The hard part is that improving one dimension often hurts another. Our framework tries to map that trade-off surface before spending more EDA budget.”</p>
+</div>
+</section>
+
+<section class="section">
+<div class="wrap">
+  <h2 style="text-align:center">Six Pre-Registered Findings</h2>
+  <p style="text-align:center;margin-bottom:24px">These are the headline results from the final paper — updated for the real-data pipeline.</p>
+  <div class="finding-grid">
+    <div class="finding-card">
+      <div class="finding-kicker">Finding 1 · Role Separation</div>
+      <div class="finding-metric">+85.1 IQM</div>
+      <p>A monolithic GAT reward model left PPO at <strong style="color:var(--white)">-17.6</strong> after 500K steps because the RL agent saw random graphs unrelated to its actions. Replacing the reward model with GBDT lifted IQM to <strong style="color:var(--white)">+67.5</strong>.</p>
+    </div>
+    <div class="finding-card">
+      <div class="finding-kicker">Finding 2 · GAT Surrogate Quality</div>
+      <div class="finding-metric">MAE = 0.153</div>
+      <p>With real netlist graphs, GAT now beats the size-plus-clock linear regression baseline by <strong style="color:var(--white)">2.5× overall</strong>. The gain is strongest on structurally rich designs like JPEG.</p>
+    </div>
+    <div class="finding-card">
+      <div class="finding-kicker">Finding 3 · Criticality Null</div>
+      <div class="finding-metric">ΔMAE = -0.003</div>
+      <p>Depth-based criticality edge weights barely move the score. In this ASAP7/ORFS pipeline, graph topology already exposes the node-count changes driven by tighter clocks and extra buffering.</p>
+    </div>
+    <div class="finding-card">
+      <div class="finding-kicker">Finding 4 · Surrogate-Only BO</div>
+      <div class="finding-metric">Pareto Growth</div>
+      <p>AES grows from <strong style="color:var(--white)">5→9</strong> frontier points and JPEG from <strong style="color:var(--white)">6→9</strong> over 50 qLogNEHVI trials. Ibex and RISC-V stay flat because the manifest set already spans their reachable trade-off space.</p>
+    </div>
+    <div class="finding-card">
+      <div class="finding-kicker">Finding 5 · Version Sensitivity</div>
+      <div class="finding-metric">WNS Sign Flips</div>
+      <p>ORFS v3.0 and 26Q1 stay within ±10% on most non-WNS metrics, but timing is fragile: JPEG shifts by <strong style="color:var(--white)">-193.4%</strong> and flips from timing met to timing violated.</p>
+    </div>
+    <div class="finding-card">
+      <div class="finding-kicker">Finding 6 · C+ Probe</div>
+      <div class="finding-metric">7/7 Confirmed</div>
+      <p>Every BO candidate remains Pareto-valid against 26Q1 baselines. JPEG candidate CAND-6 strictly dominates CTRL-2 on power, area, and fmax while still meeting timing.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="section" style="background:var(--navy2)">
+<div class="wrap">
+  <h2>Interactive Explorer</h2>
+  <p style="margin-bottom:20px">Pick a design, move the clock target, and compare an illustrative prediction from the selected model with the observed configuration.</p>
+  <div class="explorer">
+    <div class="ctrl-panel">
+      <label style="font-size:16px;color:var(--dim)">Pick a chip design</label>
+      <div class="design-btns">
+        <button class="design-btn active" data-design="aes" onclick="setDesign('aes')">AES<small>128-bit cipher</small></button>
+        <button class="design-btn" data-design="ibex" onclick="setDesign('ibex')">Ibex<small>RISC-V core</small></button>
+        <button class="design-btn" data-design="jpeg" onclick="setDesign('jpeg')">JPEG<small>image encoder</small></button>
+        <button class="design-btn" data-design="riscv32i" onclick="setDesign('riscv32i')">RISC-V<small>32I CPU</small></button>
+      </div>
+      <div class="slider-group">
+        <label>Clock target multiplier <span class="val" id="clockVal">1.00× (native target)</span></label>
+        <input type="range" id="clockMult" min="0.85" max="3.0" step="0.05" value="1.0" style="--pct:7%" oninput="onSlide(this,'clockVal',fmtClock)">
+        <div class="range-labels"><span>0.85× tight</span><span>3.0× relaxed</span></div>
+        <p style="font-size:12px;color:var(--dim);margin-top:6px">Lower multipliers demand more timing slack and usually trigger more buffering and bigger cells. Higher multipliers relax the flow.</p>
+      </div>
+      <label style="font-size:16px;color:var(--dim)">Choose the predictive model</label>
+      <div class="model-btns">
+        <button class="model-btn active" data-model="GAT" onclick="setModel('GAT')">GAT Surrogate</button>
+        <button class="model-btn" data-model="LR" onclick="setModel('LR')">Linear Baseline</button>
+      </div>
+      <p style="font-size:12px;color:var(--dim);margin-top:6px">The GAT reads real netlist graphs. The linear baseline only sees coarse size and clock features.</p>
+    </div>
+    <div class="result-panel">
+      <div class="big-stats">
+        <div class="big-stat"><div class="num pos" id="wnsNum">+4.1</div><div class="lbl">Predicted WNS (ps)</div></div>
+        <div class="big-stat"><div class="num" id="powerNum" style="color:var(--gold)">48.6</div><div class="lbl">Predicted power (mW)</div></div>
+        <div class="big-stat"><div class="num" id="areaNum" style="color:var(--blue)">1,654</div><div class="lbl">Predicted area (µm²)</div></div>
+      </div>
+      <div class="compare-grid">
+        <div class="compare-card">
+          <div class="mini">Selected family hold-out</div>
+          <div class="num" id="designMae">0.118</div>
+          <div class="sub" id="maeDisp">GAT MAE for AES</div>
+        </div>
+        <div class="compare-card">
+          <div class="mini">Observed configuration</div>
+          <div class="num" id="observedSummary">-13.9 ps</div>
+          <div class="sub" id="observedNote">49.2 mW · 1,639 µm²</div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <h4 id="featureTitle">What the selected model leans on</h4>
+        <canvas id="featureChart" height="110"></canvas>
+      </div>
+      <div class="success-note">Real netlist graphs are now in the loop: PyTorch Geometric extracted graphs from roughly 9K to 62K nodes per design, and the final GAT reaches <strong style="color:var(--white)">0.153 MAE</strong> overall. The caveat is no longer “placeholder graphs” — it is when structure helps, by how much, and for which family.</div>
+    </div>
+  </div>
+  <div style="margin-top:28px;background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:26px 30px">
+    <h3 style="color:var(--white);font-size:20px;margin-bottom:12px">What 23 Real Configurations Changed</h3>
+    <p style="font-size:15px;color:var(--dim);line-height:1.75;margin-bottom:12px">The updated dataset spans four ASAP7 designs, real graph extraction, reinforcement-learning diagnostics, and Bayesian search over real tool outputs. That made it possible to separate a reward-model problem from a surrogate-model problem instead of treating “ML for EDA” as one monolithic question.</p>
+    <p style="font-size:15px;color:var(--dim);line-height:1.75;margin-bottom:12px">The family-level picture is heterogeneous. Ibex is small and regular enough that a linear baseline stays competitive. JPEG is structurally richer, so the graph model earns a large advantage. AES and RISC-V sit between those extremes and still benefit from graph structure once the graphs are real.</p>
+    <table class="data-table">
+      <tr><th>Design</th><th>Graph scale</th><th>Best hold-out model</th><th>BO outcome</th></tr>
+      <tr><td><strong>AES</strong></td><td>~12K–18K nodes</td><td>GAT-c(e): 0.118</td><td>Pareto front 5→9</td></tr>
+      <tr><td><strong>Ibex</strong></td><td>~9K–11K nodes</td><td>LR: 0.071</td><td>No expansion</td></tr>
+      <tr><td><strong>JPEG</strong></td><td>~48K–62K nodes</td><td>GAT-c(e): 0.272</td><td>Pareto front 6→9</td></tr>
+      <tr><td><strong>RISC-V 32I</strong></td><td>~15K–21K nodes</td><td>GAT-c(e): 0.112</td><td>No expansion</td></tr>
+    </table>
+  </div>
+</div>
+</section>
+
+<section class="section">
+<div class="wrap">
+  <h2 style="text-align:center">How We Built the Final Pipeline</h2>
+  <p style="text-align:center;margin-bottom:24px;font-style:italic">Five phases, each with a distinct job, budget, and lesson.</p>
+  <div class="phase-row">
+    <div class="phase-card">
+      <span class="badge" style="background:rgba(2,195,154,.15);color:var(--teal)">Phase 0 · Bootstrap</span>
+      <h3>qLogNEHVI migration and framework setup</h3>
+      <p>The opening phase stabilized the experiment harness, moved the optimizer to qLogNEHVI, and created the manifest-driven workflow used by every later stage.</p>
+      <div class="phase-stats"><span class="phase-stat">$0.85</span><span class="phase-stat">Framework bring-up</span><span class="phase-stat">Optimizer swap</span></div>
+      <p class="phase-result">Result: a reproducible base layer before spending budget on expensive EDA runs.</p>
+    </div>
+    <div class="phase-card">
+      <span class="badge" style="background:rgba(42,136,224,.15);color:var(--blue)">Phase 1 · RL Training</span>
+      <h3>500K PPO steps across five seeds</h3>
+      <p>Entropy ablation exposed that the monolithic GAT reward model was misaligned with the agent’s actions. Role separation emerged here: GBDT for reward, GAT for BO.</p>
+      <div class="phase-stats"><span class="phase-stat">$1.20</span><span class="phase-stat">500K PPO</span><span class="phase-stat">5 seeds</span></div>
+      <p class="phase-result">Result: IQM improved from -17.6 to +67.5 once the reward model was stabilized.</p>
+    </div>
+    <div class="phase-card">
+      <span class="badge" style="background:rgba(240,192,64,.15);color:var(--gold)">Phase 2a · GAT + BO</span>
+      <h3>Real graph extraction, GAT training, 50-trial BO</h3>
+      <p>This phase extracted real netlists, ran criticality ablations, and evaluated surrogate-only Bayesian optimization on each family.</p>
+      <div class="phase-stats"><span class="phase-stat">$2.95</span><span class="phase-stat">LODO-CV</span><span class="phase-stat">50 trials/family</span></div>
+      <p class="phase-result">Result: GAT reached MAE 0.153 and expanded the Pareto set for AES and JPEG.</p>
+    </div>
+    <div class="phase-card">
+      <span class="badge" style="background:rgba(249,97,103,.15);color:var(--coral)">EDA Calibration</span>
+      <h3>ORFS version sensitivity probe</h3>
+      <p>A small calibration experiment compared ORFS v3.0 and 26Q1 on four designs to test whether tool drift could masquerade as ML progress.</p>
+      <div class="phase-stats"><span class="phase-stat">$0.65</span><span class="phase-stat">4 designs</span><span class="phase-stat">Version deltas</span></div>
+      <p class="phase-result">Result: timing proved version-sensitive enough that exact ORFS reporting became mandatory.</p>
+    </div>
+    <div class="phase-card">
+      <span class="badge" style="background:rgba(2,195,154,.15);color:var(--teal)">C+ Probe</span>
+      <h3>Cross-version generalization test</h3>
+      <p>The final probe re-ran BO candidates against 26Q1 baselines to ask the hardest practical question: do the proposed points still matter under a newer toolchain?</p>
+      <div class="phase-stats"><span class="phase-stat">$2.70</span><span class="phase-stat">7 candidates</span><span class="phase-stat">3 controls</span></div>
+      <p class="phase-result">Result: 7/7 candidates remained Pareto-valid, and one JPEG point strictly dominated its control.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="section" style="background:var(--navy2)">
+<div class="wrap">
+  <h2 style="text-align:center">The Tools Behind the Results</h2>
+  <p style="text-align:center;margin-bottom:28px">Same visual system, updated stack.</p>
+  <div class="tools-grid">
+    <div class="tool-card"><div class="tool-icon">🔧</div><div class="tool-name">ORFS</div><div class="tool-desc">OpenROAD Flow Scripts in both v3.0 and 26Q1. Exact versioning became one of the findings, not a footnote.</div></div>
+    <div class="tool-card"><div class="tool-icon">📐</div><div class="tool-name">ASAP7 PDK</div><div class="tool-desc">Predictive 7nm process kit used to keep the entire study open, reproducible, and comparable across runs.</div></div>
+    <div class="tool-card"><div class="tool-icon">🕸️</div><div class="tool-name">PyTorch Geometric</div><div class="tool-desc">Real netlist graph extraction and GAT training on design graphs ranging from roughly 9K to 62K nodes.</div></div>
+    <div class="tool-card"><div class="tool-icon">🌲</div><div class="tool-name">XGBoost GBDT</div><div class="tool-desc">Stable RL reward model on tabular features; the role-separated choice that unlocked PPO with final MAE = 0.153 on its reward feature set.</div></div>
+    <div class="tool-card"><div class="tool-icon">🧠</div><div class="tool-name">GAT + MC Dropout</div><div class="tool-desc">Graph surrogate for Bayesian optimization with 50 stochastic forward passes per acquisition step.</div></div>
+    <div class="tool-card"><div class="tool-icon">🎯</div><div class="tool-name">BoTorch qLogNEHVI</div><div class="tool-desc">Multi-objective Bayesian optimization over 50 trials per family to grow the Pareto frontier where opportunity remained.</div></div>
+    <div class="tool-card"><div class="tool-icon">🤖</div><div class="tool-name">Stable-Baselines3 PPO</div><div class="tool-desc">500,000 RL training steps across five seeds, plus entropy ablations that exposed the need for reward-model role separation.</div></div>
+    <div class="tool-card"><div class="tool-icon">☁️</div><div class="tool-name">AWS EC2</div><div class="tool-desc">c6i.4xlarge instances with 16 vCPU, 32GB RAM, no GPUs, at roughly $0.68 per hour for the full campaign.</div></div>
+  </div>
+</div>
+</section>
+
+<section class="section">
+<div class="wrap">
+  <h2>How Accurate Were the Surrogates?</h2>
+  <p style="margin-bottom:4px;font-style:italic">Lower error is better. The old “GBDT beat GAT” story is no longer true on real graphs.</p>
+  <div class="tab-row">
+    <button class="tab-btn active" data-tab="accuracy" onclick="showTab('accuracy')">Prediction Accuracy</button>
+    <button class="tab-btn" data-tab="why" onclick="showTab('why')">Mechanism</button>
+    <button class="tab-btn" data-tab="missed" onclick="showTab('missed')">What We Missed</button>
+  </div>
+  <div class="tab-content active" id="tab-accuracy">
+    <div class="chart-box"><canvas id="accuracyChart" height="210"></canvas></div>
+    <p style="text-align:center;font-size:15px;color:var(--dim)">Mean hold-out MAE: <strong style="color:var(--blue)">GAT+c(e) 0.156</strong> · <strong style="color:var(--teal)">GAT-c(e) 0.153</strong> · <strong style="color:var(--coral)">Size+clock LR 0.376</strong>.</p>
+    <p style="text-align:center;font-size:13px;color:var(--dim);font-style:italic;margin-top:4px">Ibex is the exception that proves the rule: its regular structure is simple enough that linear regression stays competitive.</p>
+  </div>
+  <div class="tab-content" id="tab-why">
+    <div class="why-cols">
+      <div class="why-col">
+        <h4 style="color:var(--teal)">Why GAT wins now</h4>
+        <ul>
+          <li>It finally sees the real synthesized netlist instead of a placeholder graph.</li>
+          <li>Large, irregular families such as JPEG benefit from structural context that coarse baselines cannot represent.</li>
+          <li>Leave-one-design-out evaluation shows the gain is about generalization, not memorizing one family.</li>
+          <li>Role separation lets the graph model focus on BO where structural inductive bias is useful.</li>
+        </ul>
+      </div>
+      <div class="why-col">
+        <h4 style="color:var(--gold)">Why criticality barely matters here</h4>
+        <ul>
+          <li>Adding depth-based criticality weights changes mean MAE by only -0.003.</li>
+          <li>Within each family, tighter clocks trigger more buffers, so node count tracks clock target almost perfectly.</li>
+          <li>The graph topology already exposes that structural inflation without explicit criticality weights.</li>
+          <li>This is a pipeline-specific null result, not a dismissal of criticality in general.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="tab-content" id="tab-missed">
+    <div class="miss-grid">
+      <div class="miss-card"><h4>Scale is still small</h4><p>The final paper covers four designs and a single dominant control knob. That is enough for mechanism, not for universal claims.</p></div>
+      <div class="miss-card"><h4>Reference sets are thin</h4><p>The cross-version probe uses two references per family, so the confirmed Pareto sets are meaningful but still sparse.</p></div>
+      <div class="miss-card"><h4>MC Dropout is miscalibrated</h4><p>Uncertainty estimates overstate the observed variance by roughly 6–9×, so acquisition confidence should not be taken literally.</p></div>
+      <div class="miss-card"><h4>No true v3.0 verification rerun</h4><p>The C+ study validates candidates against 26Q1 baselines, but there is no separate clean-room rerun that reconstructs the original v3.0 environment end to end.</p></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="key-insight-banner">
+<div class="wrap">
+  <div class="ki-inner">
+    <div class="ki-icon">🏆</div>
+    <div class="ki-text">
+      <div class="ki-label">Headline Result</div>
+      <div class="ki-headline">7/7 Pareto Candidates Confirmed Across Versions</div>
+      <div class="ki-body">The strongest public-facing result is now the C+ probe, not the early 4.6× RL story. Every Bayesian-optimization candidate survived comparison against 26Q1 baselines, and JPEG candidate CAND-6 strictly dominates CTRL-2 on power, area, and fmax while still meeting timing.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<section class="section" style="background:var(--navy2)">
+<div class="wrap">
+  <h2>Role Separation Turned RL Around</h2>
+  <p style="margin-bottom:16px;font-style:italic">The key RL finding is no longer “it improved a bit.” The key finding is that the wrong model role blocked learning entirely.</p>
+  <div class="rl-explainer">When PPO used a monolithic GAT reward model, it was optimizing against randomly constructed graphs with no semantic link to the chosen action. Entropy ablation exposed that mismatch. Swapping the reward model to GBDT while keeping GAT for BO produced a coherent clock-target policy and a large positive IQM.</div>
+  <div class="chart-box"><canvas id="rlChart" height="230"></canvas></div>
+  <div class="slider-group">
+    <label>Drag through training: <span class="val" id="rlStepVal">250,000 steps</span></label>
+    <input type="range" id="rlStep" min="0" max="500000" step="50000" value="250000" style="--pct:50%" oninput="onSlide(this,'rlStepVal',fmtStep)">
+    <div class="range-labels"><span>0 steps</span><span>500,000 steps</span></div>
+  </div>
+  <div class="rl-stats">
+    <div class="rl-stat"><div class="num" id="rlReward" style="color:var(--teal)">12.0</div><div class="lbl">Role-separated IQM</div></div>
+    <div class="rl-stat"><div class="num" id="rlBaseline" style="color:var(--coral)">-17.9</div><div class="lbl">Monolithic GAT IQM</div></div>
+    <div class="rl-stat"><div class="num" id="rlDelta" style="color:var(--gold)">+29.9</div><div class="lbl">Current gap</div></div>
+    <div class="rl-stat"><div class="num" id="rlStatus">🟡</div><div class="lbl" id="rlStatusLbl">Policy becoming coherent</div></div>
+  </div>
+  <table class="rl-table">
+    <tr><th>Setup</th><th>500K IQM</th><th>What happened</th></tr>
+    <tr><td>Monolithic GAT reward model</td><td style="color:var(--coral)">-17.6</td><td>PPO optimized against graph inputs unrelated to the action semantics.</td></tr>
+    <tr><td>Entropy ablation</td><td style="color:var(--gold)">diagnostic</td><td>Revealed that the issue was reward feedback quality, not lack of exploration.</td></tr>
+    <tr><td>GBDT reward model + GAT for BO</td><td style="color:var(--teal)">+67.5</td><td>The policy learned a coherent progression along the clock-target dimension.</td></tr>
+  </table>
+  <div class="rl-summary">Finding 1 is a role-separation result: the same project succeeds once RL and BO stop sharing a single model that was never appropriate for both jobs.</div>
+</div>
+</section>
+
+<section class="section">
+<div class="wrap">
+  <h2>Sanity Checks as Methodology</h2>
+  <p style="margin-bottom:18px">Four pre-flight checks caught four distinct bugs. In the final paper, those checks are part of the contribution because each one blocked a plausible but wrong conclusion.</p>
+  <div class="sanity-grid">
+    <div class="sanity-card">
+      <span class="sanity-tag">Check 1 · RL entropy ablation</span>
+      <h4>Broken GAT predictor</h4>
+      <p>The entropy ablation showed the agent was not suffering from exploration collapse. It was being fed unstable reward estimates from a broken predictor.</p>
+      <p style="margin-top:8px"><strong style="color:var(--white)">Counterfactual:</strong> without this check, the project would have blamed PPO instead of the reward model.</p>
+    </div>
+    <div class="sanity-card">
+      <span class="sanity-tag">Check 2 · Data provenance spot-check</span>
+      <h4>v1/v2 data confusion</h4>
+      <p>A manual provenance check caught byte-identical DEF files where two data versions were supposed to differ, exposing a dataset lineage mistake.</p>
+      <p style="margin-top:8px"><strong style="color:var(--white)">Counterfactual:</strong> graph experiments would have mixed mislabeled samples and corrupted the surrogate comparison.</p>
+    </div>
+    <div class="sanity-card">
+      <span class="sanity-tag">Check 3 · EDA calibration probe</span>
+      <h4>ORFS version mismatch</h4>
+      <p>The calibration run showed that toolchain drift could move WNS enough to flip a timing verdict even when power and area looked stable.</p>
+      <p style="margin-top:8px"><strong style="color:var(--white)">Counterfactual:</strong> the study might have attributed tool-version drift to ML improvement.</p>
+    </div>
+    <div class="sanity-card">
+      <span class="sanity-tag">Check 4 · C+ implausible-value test</span>
+      <h4>SDC time-unit mismatch</h4>
+      <p>An implausible-value screen caught a ps-vs-ns mismatch in SDC handling before it turned into a fake performance breakthrough.</p>
+      <p style="margin-top:8px"><strong style="color:var(--white)">Counterfactual:</strong> the final probe could have reported impossible fmax gains as if they were genuine wins.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="section" style="background:var(--navy2)">
+<div class="wrap">
+  <h2>Version Sensitivity</h2>
+  <p style="margin-bottom:16px">A small calibration experiment compared ORFS v3.0 and 26Q1 on the same four designs. Power, area, and fmax were usually stable. WNS was not.</p>
+  <div class="chart-box"><canvas id="versionChart" height="220"></canvas></div>
+  <table class="data-table">
+    <tr><th>Design</th><th>WNS</th><th>Power</th><th>Area</th><th>fmax</th></tr>
+    <tr><td><strong>AES</strong></td><td style="color:var(--coral)">-97.0%</td><td>+9.7%</td><td>-1.2%</td><td>+1.8%</td></tr>
+    <tr><td><strong>Ibex</strong></td><td style="color:var(--coral)">-155.2%</td><td>+3.4%</td><td>-0.8%</td><td>+2.1%</td></tr>
+    <tr><td><strong>JPEG</strong></td><td style="color:var(--coral)">-193.4%</td><td>+5.8%</td><td>-2.1%</td><td>+0.9%</td></tr>
+    <tr><td><strong>RISC-V 32I</strong></td><td style="color:var(--coral)">-89.3%</td><td>+4.2%</td><td>-1.5%</td><td>+1.4%</td></tr>
+  </table>
+  <div class="caveat">Timing can change sign across ORFS versions even when the other metrics look nearly unchanged. Any ML-for-EDA pipeline using ORFS must lock and report the exact version.</div>
+</div>
+</section>
+
+<section class="section">
+<div class="wrap">
+  <h2>Cross-Version Generalization (C+ Probe)</h2>
+  <p style="margin-bottom:18px">The C+ probe asked whether candidates discovered under one toolchain still matter under another. The answer was yes — across the board.</p>
+  <div class="stat-row">
+    <div class="stat-card"><div class="num">7/7</div><div class="lbl">Candidates on Pareto front</div></div>
+    <div class="stat-card"><div class="num">3</div><div class="lbl">Controls checked</div></div>
+    <div class="stat-card"><div class="num">0.00</div><div class="lbl">Timing met for all 10</div></div>
+  </div>
+  <div class="chart-box">
+    <h4>JPEG CAND-6 advantage over CTRL-2 (positive means better)</h4>
+    <canvas id="cplusChart" height="190"></canvas>
+  </div>
+  <table class="data-table">
+    <tr><th>Point</th><th>Power (W)</th><th>Area (µm²)</th><th>fmax (MHz)</th><th>WNS</th></tr>
+    <tr><td><strong>CAND-6</strong></td><td>0.0683</td><td>6386</td><td>1262.75</td><td>0.00 ps</td></tr>
+    <tr><td><strong>CTRL-2</strong></td><td>0.0701</td><td>6389</td><td>1217.56</td><td>0.00 ps</td></tr>
+  </table>
+  <p style="font-size:15px;color:var(--dim);line-height:1.75">This is the strongest end-to-end validation in the study. It does not just show that the surrogate proposed promising points; it shows those points survive when compared to newer 26Q1 baselines, which is exactly the practical test a design team would care about.</p>
+</div>
+</section>
+
+<section class="section" style="background:var(--navy2)">
+<div class="wrap">
+  <div class="researcher-card">
+    <div class="researcher-avatar">OT</div>
+    <div class="researcher-info">
+      <div class="researcher-name">Oguzhan Tekin</div>
+      <div class="researcher-title">Independent Researcher · MLCAD paper author</div>
+      <p class="researcher-bio">This project was designed, executed, and documented by Oguzhan Tekin as an independent research effort culminating in the final MLCAD paper. The work spans the full low-cost ML-for-EDA loop: AWS execution, OpenROAD-based data generation, graph extraction, reinforcement learning diagnostics, Bayesian optimization, and public-facing documentation of both findings and failure modes.</p>
+      <a class="researcher-email" href="mailto:oguzhantekin@gmail.com">oguzhantekin@gmail.com</a>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer>
+<div class="wrap">
+  <p class="footer-caveat">Final status: 23 real OpenROAD configurations, 6 pre-registered findings, exact-version ORFS reporting, and 7/7 Pareto candidates confirmed in the C+ probe. Remaining limits are scale, sparse reference sets, and uncertainty calibration.</p>
+  <p class="footer-creator">Created by Oguzhan Tekin &nbsp;·&nbsp; <a href="mailto:oguzhantekin@gmail.com" style="color:var(--teal);text-decoration:none;">oguzhantekin@gmail.com</a></p>
+</div>
+</footer>
+
+<script>
+const REAL_DATA={
+  aes:[[0.85,-145.73,49.23,1551.79],[1.00,-13.88,49.23,1639.00],[1.15,42.10,48.10,1600.00],[1.50,156.70,46.80,1575.00],[2.00,412.30,44.20,1560.00],[3.00,1244.36,40.10,1552.00]],
+  ibex:[[0.85,-98.20,12.40,2340.00],[1.00,-8.40,12.10,2450.00],[1.15,38.90,11.80,2390.00],[1.50,124.50,11.20,2370.00],[3.00,876.40,7.01,2340.00]],
+  jpeg:[[0.85,-132.40,158.24,6588.00],[1.00,-22.30,155.10,6774.00],[1.15,31.80,148.20,6650.00],[1.50,108.90,138.40,6600.00],[2.00,298.70,122.10,6590.00],[3.00,622.80,100.30,6588.00]],
+  riscv32i:[[0.85,-87.60,18.40,2591.00],[1.00,-6.20,17.90,2728.00],[1.15,44.70,17.20,2660.00],[1.50,138.20,16.10,2610.00],[2.00,402.10,14.30,2595.00],[3.00,893.40,11.80,2591.00]]
+};
+const MODEL_MAE={GAT:0.153,LR:0.376};
+const HOLDOUT_MAE={
+  aes:{GAT:0.118,LR:0.322},
+  ibex:{GAT:0.108,LR:0.071},
+  jpeg:{GAT:0.272,LR:0.679},
+  riscv32i:{GAT:0.112,LR:0.264}
+};
+const MODEL_PROFILE={
+  GAT:{aes:{wns:18,power:-0.012,area:0.009},ibex:{wns:9,power:0.004,area:-0.003},jpeg:{wns:-18,power:0.018,area:0.011},riscv32i:{wns:14,power:-0.008,area:0.008}},
+  LR:{aes:{wns:-48,power:0.052,area:0.028},ibex:{wns:6,power:0.003,area:-0.002},jpeg:{wns:-94,power:0.081,area:0.043},riscv32i:{wns:31,power:0.029,area:0.019}}
+};
+const FEATURE_DATA={
+  GAT:{labels:['Graph topology','Clock target','Family context','Criticality edges'],values:[42,29,17,12]},
+  LR:{labels:['Size prior','Clock target','Family context','Slack trend'],values:[44,34,12,10]}
+};
+const RL_MONO=[[0,-18.5],[50000,-18.4],[100000,-18.3],[150000,-18.2],[200000,-18.0],[250000,-17.9],[300000,-17.8],[350000,-17.8],[400000,-17.7],[450000,-17.7],[500000,-17.6]];
+const RL_ROLE=[[0,-17.6],[50000,-10.2],[100000,-4.0],[150000,3.5],[200000,12.0],[250000,21.0],[300000,31.0],[350000,40.5],[400000,49.0],[450000,58.0],[500000,67.5]];
+const VERSION_DELTA={
+  labels:['AES','Ibex','JPEG','RISC-V'],
+  wns:[-97.0,-155.2,-193.4,-89.3],
+  power:[9.7,3.4,5.8,4.2],
+  area:[-1.2,-0.8,-2.1,-1.5],
+  fmax:[1.8,2.1,0.9,1.4]
+};
+const S={design:'aes',clockMult:1.0,model:'GAT',rlStep:250000,activeTab:'accuracy'};
+let featureChartInst,accuracyChartInst,rlChartInst,versionChartInst,cplusChartInst;
+
+function getCSS(name){return getComputedStyle(document.body).getPropertyValue(name).trim();}
+function fmtClock(v){
+  const labels={'0.85':'tight target','1':'native target','1.15':'slightly relaxed','1.5':'relaxed','2':'very relaxed','3':'ultra relaxed'};
+  const key=parseFloat(v).toFixed(2).replace(/\.?0+$/,'');
+  return v.toFixed(2)+'× ('+(labels[key]||'custom')+')';
+}
+function fmtStep(v){return Number(v).toLocaleString()+' steps';}
+function onSlide(el,valId,fmt){
+  const v=parseFloat(el.value);
+  const pct=((v-el.min)/(el.max-el.min)*100).toFixed(1);
+  el.style.setProperty('--pct',pct+'%');
+  document.getElementById(valId).textContent=fmt(v);
+  if(el.id==='clockMult')S.clockMult=v;
+  if(el.id==='rlStep')S.rlStep=v;
+  update();
+}
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  document.getElementById('themeBtn').textContent=document.body.classList.contains('light')?'🌙 Dark':'☀️ Light';
+  applyChartTheme();
+}
+function setDesign(d){
+  S.design=d;
+  document.querySelectorAll('.design-btn').forEach(b=>b.classList.toggle('active',b.dataset.design===d));
+  update();
+}
+function setModel(m){
+  S.model=m;
+  document.querySelectorAll('.model-btn').forEach(b=>b.classList.toggle('active',b.dataset.model===m));
+  update();
+}
+function showTab(t){
+  S.activeTab=t;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));
+}
+function interpolate(data,clk){
+  for(let i=0;i<data.length-1;i++){
+    if(clk>=data[i][0]&&clk<=data[i+1][0]){
+      const t=(clk-data[i][0])/(data[i+1][0]-data[i][0]);
+      return [
+        data[i][1]+(data[i+1][1]-data[i][1])*t,
+        data[i][2]+(data[i+1][2]-data[i][2])*t,
+        data[i][3]+(data[i+1][3]-data[i][3])*t
+      ];
+    }
+  }
+  if(clk<=data[0][0])return[data[0][1],data[0][2],data[0][3]];
+  const last=data[data.length-1];
+  return[last[1],last[2],last[3]];
+}
+function predictMetrics(actual,design,model){
+  const p=MODEL_PROFILE[model][design];
+  return {
+    wns:actual[0]+p.wns,
+    power:actual[1]*(1+p.power),
+    area:actual[2]*(1+p.area)
+  };
+}
+function interpCurve(curve,step){
+  for(let i=0;i<curve.length-1;i++){
+    if(step>=curve[i][0]&&step<=curve[i+1][0]){
+      const t=(step-curve[i][0])/(curve[i+1][0]-curve[i][0]);
+      return curve[i][1]+(curve[i+1][1]-curve[i][1])*t;
+    }
+  }
+  return curve[curve.length-1][1];
+}
+function baseChartOptions(extra){
+  return Object.assign({
+    responsive:true,
+    plugins:{legend:{labels:{color:getCSS('--dim'),boxWidth:12,padding:16}}},
+    scales:{
+      x:{ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'},title:{color:getCSS('--dim')}},
+      y:{ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'},title:{color:getCSS('--dim')}}
+    }
+  },extra||{});
+}
+function initCharts(){
+  Chart.defaults.color=getCSS('--dim');
+  Chart.defaults.font.family="'Calibri','Candara','Segoe UI',sans-serif";
+  Chart.defaults.font.size=14;
+
+  featureChartInst=new Chart(document.getElementById('featureChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:FEATURE_DATA.GAT.labels,datasets:[{data:FEATURE_DATA.GAT.values,backgroundColor:['#02C39A','#2a88e0','#f0c040','#6a8fad'],borderRadius:4}]},
+    options:baseChartOptions({indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:50,ticks:{color:getCSS('--dim'),callback:v=>v+'%'},grid:{color:'rgba(106,143,173,0.12)'}},y:{ticks:{color:getCSS('--dim')},grid:{display:false}}}})
+  });
+
+  accuracyChartInst=new Chart(document.getElementById('accuracyChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:['AES','Ibex','JPEG','RISC-V','Mean'],
+      datasets:[
+        {label:'GAT+c(e)',data:[0.175,0.100,0.271,0.076,0.156],backgroundColor:'#2a88e0',borderRadius:4},
+        {label:'GAT-c(e)',data:[0.118,0.108,0.272,0.112,0.153],backgroundColor:'#02C39A',borderRadius:4},
+        {label:'Size+clock LR',data:[0.322,0.071,0.679,0.264,0.376],backgroundColor:'#F96167',borderRadius:4}
+      ]
+    },
+    options:baseChartOptions({scales:{y:{beginAtZero:true,max:0.75,title:{display:true,text:'MAE (lower is better)',color:getCSS('--dim')},ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'}},x:{ticks:{color:getCSS('--dim')},grid:{display:false}}}})
+  });
+
+  rlChartInst=new Chart(document.getElementById('rlChart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:RL_MONO.map(p=>(p[0]/1000)+'k'),
+      datasets:[
+        {label:'Monolithic GAT reward model',data:RL_MONO.map(p=>p[1]),borderColor:'#F96167',backgroundColor:'#F96167',borderWidth:3,pointRadius:4,tension:0.25},
+        {label:'Role-separated PPO',data:RL_ROLE.map(p=>p[1]),borderColor:'#02C39A',backgroundColor:'#02C39A',borderWidth:3,pointRadius:4,tension:0.25}
+      ]
+    },
+    options:baseChartOptions({scales:{y:{min:-25,max:75,title:{display:true,text:'IQM reward',color:getCSS('--dim')},ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'}},x:{title:{display:true,text:'Training steps',color:getCSS('--dim')},ticks:{color:getCSS('--dim')},grid:{display:false}}}})
+  });
+
+  versionChartInst=new Chart(document.getElementById('versionChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:VERSION_DELTA.labels,
+      datasets:[
+        {label:'WNS % Δ',data:VERSION_DELTA.wns,backgroundColor:'#F96167',borderRadius:4},
+        {label:'Power % Δ',data:VERSION_DELTA.power,backgroundColor:'#f0c040',borderRadius:4},
+        {label:'Area % Δ',data:VERSION_DELTA.area,backgroundColor:'#2a88e0',borderRadius:4},
+        {label:'fmax % Δ',data:VERSION_DELTA.fmax,backgroundColor:'#02C39A',borderRadius:4}
+      ]
+    },
+    options:baseChartOptions({scales:{y:{min:-210,max:15,title:{display:true,text:'Percent delta: v3.0 → 26Q1',color:getCSS('--dim')},ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'}},x:{ticks:{color:getCSS('--dim')},grid:{display:false}}}})
+  });
+
+  cplusChartInst=new Chart(document.getElementById('cplusChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:['Power','Area','fmax'],datasets:[{label:'CAND-6 advantage (%)',data:[2.57,0.05,3.71],backgroundColor:['#02C39A','#2a88e0','#f0c040'],borderRadius:4}]},
+    options:baseChartOptions({plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:4.5,title:{display:true,text:'Percent improvement vs CTRL-2',color:getCSS('--dim')},ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'}},x:{ticks:{color:getCSS('--dim')},grid:{display:false}}}})
+  });
+}
+function applyChartTheme(){
+  [featureChartInst,accuracyChartInst,rlChartInst,versionChartInst,cplusChartInst].forEach(chart=>{
+    if(!chart)return;
+    const opts=chart.options;
+    if(opts.plugins&&opts.plugins.legend&&opts.plugins.legend.labels)opts.plugins.legend.labels.color=getCSS('--dim');
+    if(opts.scales){
+      Object.keys(opts.scales).forEach(axis=>{
+        const scale=opts.scales[axis];
+        if(scale.ticks)scale.ticks.color=getCSS('--dim');
+        if(scale.title)scale.title.color=getCSS('--dim');
+        if(scale.grid&&scale.grid.display!==false)scale.grid.color='rgba(106,143,173,0.12)';
+      });
+    }
+    chart.update();
+  });
+}
+function update(){
+  const actual=interpolate(REAL_DATA[S.design],S.clockMult);
+  const pred=predictMetrics(actual,S.design,S.model);
+  const wnsEl=document.getElementById('wnsNum');
+  wnsEl.textContent=(pred.wns>=0?'+':'')+pred.wns.toFixed(1);
+  wnsEl.className='num '+(pred.wns>=0?'pos':'neg');
+  document.getElementById('powerNum').textContent=pred.power.toFixed(1);
+  document.getElementById('areaNum').textContent=Math.round(pred.area).toLocaleString();
+  document.getElementById('designMae').textContent=HOLDOUT_MAE[S.design][S.model].toFixed(3);
+  document.getElementById('maeDisp').textContent=S.model+' hold-out MAE for '+(S.design==='riscv32i'?'RISC-V':S.design.toUpperCase())+' · overall '+MODEL_MAE[S.model].toFixed(3);
+  document.getElementById('observedSummary').textContent=(actual[0]>=0?'+':'')+actual[0].toFixed(1)+' ps';
+  document.getElementById('observedNote').textContent=actual[1].toFixed(1)+' mW · '+Math.round(actual[2]).toLocaleString()+' µm²';
+  document.getElementById('featureTitle').textContent=S.model==='GAT'?'What the selected model leans on':'What the linear baseline can actually see';
+  featureChartInst.data.labels=FEATURE_DATA[S.model].labels;
+  featureChartInst.data.datasets[0].data=FEATURE_DATA[S.model].values;
+  featureChartInst.update();
+
+  const role=interpCurve(RL_ROLE,S.rlStep);
+  const mono=interpCurve(RL_MONO,S.rlStep);
+  const delta=role-mono;
+  document.getElementById('rlReward').textContent=role.toFixed(1);
+  document.getElementById('rlBaseline').textContent=mono.toFixed(1);
+  document.getElementById('rlDelta').textContent=(delta>=0?'+':'')+delta.toFixed(1);
+  const status=document.getElementById('rlStatus');
+  const statusLbl=document.getElementById('rlStatusLbl');
+  if(role<0){status.textContent='🔴';statusLbl.textContent='Still dominated by bad reward feedback';}
+  else if(role<35){status.textContent='🟡';statusLbl.textContent='Policy becoming coherent';}
+  else{status.textContent='🟢';statusLbl.textContent='Stable clock-target policy';}
+}
+
+document.querySelectorAll('.hdr-dropdown').forEach(dd=>{
+  dd.querySelector('.hdr-dropdown-trigger').addEventListener('click',e=>{
+    e.stopPropagation();
+    const wasOpen=dd.classList.contains('open');
+    document.querySelectorAll('.hdr-dropdown.open').forEach(d=>d.classList.remove('open'));
+    if(!wasOpen)dd.classList.add('open');
+  });
+  dd.querySelector('.hdr-dropdown-panel').addEventListener('click',e=>e.stopPropagation());
+});
+document.addEventListener('click',()=>document.querySelectorAll('.hdr-dropdown.open').forEach(d=>d.classList.remove('open')));
+window.addEventListener('DOMContentLoaded',()=>{initCharts();update();applyChartTheme();});
+</script>
+</body>
+</html>

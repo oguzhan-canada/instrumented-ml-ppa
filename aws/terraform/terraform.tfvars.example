@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# terraform.tfvars.example — Copy to terraform.tfvars and fill in your values
+# ─────────────────────────────────────────────────────────────────────────────
+
+aws_region       = "us-east-1"
+project_name     = "ppa-framework"
+key_pair_name    = "your-key-pair-name"    # REQUIRED: existing EC2 key pair
+allowed_ssh_cidr = "203.0.113.0/32"        # REQUIRED: your IP address /32
+
+# ── Instance types (ordered by preference for Spot capacity) ──────────────────
+cpu_instance_types = ["c6i.8xlarge", "c6a.8xlarge", "m6i.8xlarge"]
+gpu_instance_types = ["g4dn.xlarge", "g5.xlarge"]
+
+# ── Storage ───────────────────────────────────────────────────────────────────
+cpu_ebs_size_gb = 200    # OpenABC-D (19GB) + OpenROAD runs + features
+gpu_ebs_size_gb = 100    # Models + results
+
+# ── Spot pricing ──────────────────────────────────────────────────────────────
+spot_max_price_cpu = "0.60"
+spot_max_price_gpu = "0.35"
+
+# ── S3 bucket (leave empty for auto-generated name) ──────────────────────────
+# s3_bucket_name = "my-ppa-data-bucket"
+
+# ── Stage control — toggle which instance to launch ──────────────────────────
+launch_cpu = false    # Set true when ready for Stages 1-2
+launch_gpu = false    # Set true when ready for Stages 3-5

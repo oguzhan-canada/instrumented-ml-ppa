@@ -1,0 +1,47 @@
+# Secrets and credentials
+*.env
+.env*
+*.pem
+*.key
+*.credentials
+*.secret
+terraform.tfstate
+terraform.tfstate.*
+terraform.tfvars
+.terraform/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (presentation tooling)
+node_modules/
+package-lock.json
+
+# LaTeX intermediates
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Pytest
+.pytest_cache/

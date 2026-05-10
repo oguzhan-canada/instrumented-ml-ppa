@@ -44,6 +44,14 @@ p,.note{font-size:17px;color:var(--dim);line-height:1.7}
 .stat-card .num{font-size:36px;font-weight:700;color:var(--teal)}
 .stat-card .lbl{font-size:14px;color:var(--dim);margin-top:2px}
 .hero .footnote{font-style:italic;font-size:15px;color:var(--dim);max-width:720px;margin:0 auto}
+.video-section{padding-top:12px}
+.video-shell{max-width:920px;margin:0 auto;background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:20px}
+.video-shell h2{text-align:center;margin-bottom:10px}
+.video-lead{text-align:center;max-width:760px;margin:0 auto 16px}
+.explainer-video{display:block;width:100%;height:auto;border:1px solid var(--border);border-radius:10px;background:#000}
+.video-caption{text-align:center;font-size:14px;color:var(--dim);margin-top:12px}
+.video-caption a{color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(2,195,154,.4)}
+.video-caption a:hover{border-color:var(--teal)}
 .ppa-row{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
 .ppa-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:28px 24px;flex:1;min-width:200px;max-width:300px;text-align:center}
 .ppa-card .icon{font-size:40px;margin-bottom:8px}
@@ -196,7 +204,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
 <section class="hero section">
 <div class="wrap">
   <h1>Can a Computer Learn to Design Better Chips?</h1>
-  <p class="sub">Yes — but only when the models, toolchain, and sanity checks all play the right role. This final MLCAD study turns a small real-data campaign into six pre-registered findings about RL, graph surrogates, and reproducible ML-for-EDA.</p>
+  <p class="sub">Yes — but only when the models, toolchain, and sanity checks all play the right role. This study turns a small real-data campaign into six pre-registered findings about Reinforcement Learning (RL), graph surrogates, and reproducible Machine Learning-for-Electronic Design Automation (EDA).</p>
   <div class="stat-row">
     <div class="stat-card"><div class="num">23</div><div class="lbl">Configurations</div></div>
     <div class="stat-card"><div class="num">6</div><div class="lbl">Findings</div></div>
@@ -204,6 +212,21 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
     <div class="stat-card"><div class="num">7/7</div><div class="lbl">Pareto Confirmed</div></div>
   </div>
   <p class="footnote">“The final result is not just a better model. It is a workflow that separates roles, locks tool versions, and checks itself before making claims.”</p>
+</div>
+</section>
+
+<section class="section video-section">
+<div class="wrap">
+  <div class="video-shell">
+    <h2>Project Explainer Video</h2>
+    <p class="video-lead">Watch a concise walkthrough of the full ML-driven PPA workflow, from setup and findings to validation and reproducibility checks.</p>
+    <video class="explainer-video" controls preload="metadata" playsinline>
+      <source src="../../video/PPA.mp4" type="video/mp4">
+      Your browser does not support embedded video. You can download and view it directly here:
+      <a href="../../video/PPA.mp4">PPA.mp4</a>.
+    </video>
+    <p class="video-caption">Self-hosted video file: <a href="../../video/PPA.mp4">PPA.mp4</a></p>
+  </div>
 </div>
 </section>
 
@@ -540,7 +563,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
     <tr><td><strong>CAND-6</strong></td><td>0.0683</td><td>6386</td><td>1262.75</td><td>0.00 ps</td></tr>
     <tr><td><strong>CTRL-2</strong></td><td>0.0701</td><td>6389</td><td>1217.56</td><td>0.00 ps</td></tr>
   </table>
-  <p style="font-size:15px;color:var(--dim);line-height:1.75">This is the strongest end-to-end validation in the study. It does not just show that the surrogate proposed promising points; it shows those points survive when compared to newer 26Q1 baselines, which is exactly the practical test a design team would care about.</p>
+  <p style="font-size:15px;color:var(--dim);line-height:1.75">The strongest result is a JPEG encoder configuration proposed by the BO surrogate, synthesized through OpenROAD Flow Scripts 26Q1 on the ASAP7 7nm predictive PDK. It strictly dominates a control configuration on power, area, and frequency simultaneously.</p>
 </div>
 </section>
 
@@ -550,8 +573,9 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
     <div class="researcher-avatar">OT</div>
     <div class="researcher-info">
       <div class="researcher-name">Oguzhan Tekin</div>
-      <div class="researcher-title">Independent Researcher · MLCAD paper author</div>
-      <p class="researcher-bio">This project was designed, executed, and documented by Oguzhan Tekin as an independent research effort culminating in the final MLCAD paper. The work spans the full low-cost ML-for-EDA loop: AWS execution, OpenROAD-based data generation, graph extraction, reinforcement learning diagnostics, Bayesian optimization, and public-facing documentation of both findings and failure modes.</p>
+      <div class="researcher-title">Machine Learning and Artificial Intelligence Researcher</div>
+      <a class="researcher-email" href="https://github.com/oguzhan-canada/instrumented-ml-ppa" target="_blank">https://github.com/oguzhan-canada/instrumented-ml-ppa</a>
+      <br>
       <a class="researcher-email" href="mailto:oguzhantekin@gmail.com">oguzhantekin@gmail.com</a>
     </div>
   </div>

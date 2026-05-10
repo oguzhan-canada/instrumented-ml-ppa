@@ -4,7 +4,7 @@
 
 Oguzhan Tekin · Independent Researcher · Toronto, Canada
 
-📄 [Paper (PDF)](paper/paper.pdf) · 📊 [Experimental Trail (PROGRESS.md)](PROGRESS.md)
+📄 [Paper (PDF)](paper/paper.pdf) · 📊 [Experimental Trail (PROGRESS.md)](PROGRESS.md) · 🔬 [Interactive Findings](https://oguzhan-canada.github.io/instrumented-ml-ppa/findings.html)
 
 ---
 
